@@ -153,7 +153,7 @@
            (if (and (= 0 exit-code) (string=? "" err-string))
                (if (test-error test)
                    (compiler-passed err-string)
-                   (run-prog))
+                   (if front-end (passed) (run-prog)))
                (compiler-failed exit-code err-string))))))))))
   (lambda ()
    (when compiled-file
