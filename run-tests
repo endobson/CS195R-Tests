@@ -1,0 +1,187 @@
+#!/usr/bin/env racket
+#lang racket
+
+(require srfi/13)
+
+(define (find-tests path)
+ (define (find-tests-in-folder path acc)
+  (let ((paths (map (curry build-path path) (directory-list path))))
+   (for/fold ((acc acc)) ((path paths))
+    (cond
+     ((filename-extension path) =>
+      (lambda (ext)
+       (if (equal? ext #"tiger")
+           (cons path acc)
+           acc)))
+     ((directory-exists? path)
+      (find-tests-in-folder path acc))
+     (else acc)))))
+ (find-tests-in-folder path empty))
+
+
+(struct test (path error exit-code output))
+(struct bad-test (message))
+(define (read-test path)
+ (define (other-file ext)
+  (path-replace-suffix path ext))
+ (define expected-output
+  (let ((output-file (other-file ".output")))
+   (and (file-exists? output-file)
+    (call-with-input-file output-file port->string))))
+
+ (define expected-error
+  (let ((error-file (other-file ".error")))
+   (and (file-exists? error-file)
+    (call-with-input-file error-file port->string))))
+
+ (let/ec return
+  (define expected-exit
+   (let ((exit-file (other-file ".exit")))
+    (and (file-exists? exit-file)
+     (let ((string (call-with-input-file exit-file port->string)))
+      (or (string->number (string-trim-both string))
+          (return (bad-test (format "Exit code in file ~a was not a number" exit-file))))))))
+
+  (when (and expected-error expected-exit)
+   (return (bad-test (format "Both an error file and exit file exist: ~a, ~a" (other-file ".error") (other-file ".exit")))))
+ 
+  (when (and expected-error expected-output)
+   (return (bad-test (format "Both an error file and output file exist: ~a, ~a" (other-file ".error") (other-file ".output")))))
+ 
+  (when (and (not expected-error) (not expected-exit))
+   (return (bad-test (format "Neither an error file nor an exit file exist: ~a, ~a" (other-file ".error") (other-file ".exit")))))
+  (test path expected-error expected-exit expected-output)))
+
+(define (print-bad-tests tests)
+ (define bad #f)
+ (for ((test tests))
+  (when (bad-test? test)
+   (printf "Bad Test: ~a~n" (bad-test-message test))
+   (set! bad #t)))
+ bad)
+
+
+
+
+
+(struct compiler-failed (exit-code stderr))
+(struct compiler-passed (stderr)) ;it shouldn't have
+(struct prog-failed (exit-code stdout stderr))
+(struct passed ())
+
+
+(define (print-results tests results)
+ (define bad #f)
+ (for ((result results) (test tests))
+  (match result
+   ((compiler-failed exit-code stderr)
+    (printf "---Test ~a---~n" (test-path test))
+    (printf "Compiler failed with exit code: ~a~n" exit-code)
+    (when (not (equal? "" stderr))
+     (printf "Standard Error:~n~a" stderr))
+    (printf "-----~n")
+    (set! bad #t))
+
+   ((compiler-passed stderr)
+    (printf "---Test ~a---~n" (test-path test))
+    (printf "Compiler passed, should have had error: ~a~n" (test-error test))
+    (when (not (equal? "" stderr))
+     (printf "Standard Error:~n~a" stderr))
+    (printf "-----~n")
+    (set! bad #t))
+
+   ((prog-failed exit stdout stderr)
+    (printf "---Test ~a---~n" (test-path test))
+    (printf "Program failed~n")
+    (unless (equal? exit (test-exit-code test))
+     (printf "Exit code was ~a, should have been ~a~n" exit (test-exit-code test)))
+    (unless (equal? stdout (test-output test))
+     (printf "Output was:~n~a~nShould have been:~n~a~n" stdout (test-output test)))
+    (when (not (equal? "" stderr))
+     (printf "Standard Error:~n~a" stderr))
+    (printf "-----~n")
+    (set! bad #t))
+
+   ((passed) (void))))
+ bad)
+
+
+
+
+(define (run-test test)
+ (define compiled-file #f)
+ (define tiger-path (test-path test))
+ (define (other-file ext)
+  (path-replace-suffix tiger-path ext))
+ (dynamic-wind
+  (let ((first #t)) (lambda () (if first (set! first #f) (error 'running-tests "Re-entered test for ~a" tiger-path))))
+  (lambda ()
+   (set! compiled-file
+    (make-temporary-file
+     (let-values (((base end dir) (split-path tiger-path)))
+      (if (path? end)
+          (string-append (path->string end) "~a")
+          "tiger~a"))))
+
+
+
+    (define (run-prog)
+     (call-with-input-file (other-file ".input")
+      (lambda (input-file-port)
+       (let-values (((sub out _in err) (subprocess #f input-file-port #f compiled-file)))
+        (define output #f)
+        (define err-output #f)
+        (define out-thread (thread (lambda () (set! output (port->string out)))))
+        (define err-thread (thread (lambda () (set! err-output (port->string err)))))
+        (thread-wait out-thread)
+        (thread-wait err-thread)
+        (subprocess-wait sub)
+        (define exit-code (subprocess-status sub))
+        (if (and (= exit-code (test-exit-code test)) (string=? output (test-output test)))
+            (passed)
+            (prog-failed exit-code output err-output))))))
+    
+    (call-with-input-file tiger-path
+     (lambda (tiger-file-port)
+      (call-with-output-file compiled-file #:exists 'truncate
+       (lambda (compiled-file-port)
+        (let-values (((sub _out _in err) (subprocess compiled-file-port tiger-file-port #f compiler)))
+         (let ((err-string (port->string err)))
+          (close-input-port err)
+          (subprocess-wait sub)
+          (let ((exit-code (subprocess-status sub)))
+           (if (and (= 0 exit-code) (string=? "" err-string))
+               (if (test-error test)
+                   (compiler-passed err-string)
+                   (run-prog))
+               (compiler-failed exit-code err-string))))))))))
+  (lambda ()
+   (when compiled-file
+    (when (file-exists? compiled-file)
+     (delete-file compiled-file))
+    (set! compiled-file #f)))))
+   
+
+(define-values (compiler front-end test-dir)
+ (let ((compiler "tiger") (test-dir "tests") (front-end #f))
+  (command-line 
+    #:once-each
+    (("-d" "--tests-dir") dir "test directory" (set! test-dir dir))
+    (("-c" "--compiler") comp "compiler path" (set! compiler comp))
+    (("-f" "--front-end") "only run front-end" (set! front-end #t))
+    #:args ()
+     (values
+      (expand-user-path compiler)
+      front-end
+      (expand-user-path test-dir)))))
+ 
+
+
+(define tests (map read-test (find-tests test-dir)))
+(when (print-bad-tests tests)
+ (exit 1))
+
+(define results (map run-test tests))
+(when (print-results tests results)
+ (exit 1))
+

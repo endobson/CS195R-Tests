@@ -1,0 +1,1 @@
+let type a = int type b = a in 4 + 4 end
