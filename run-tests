@@ -25,7 +25,7 @@
  (define (other-file ext)
   (path-replace-suffix path ext))
  (define expected-output
-  (let ((output-file (other-file ".output")))
+  (let ((output-file (other-file ".out")))
    (and (file-exists? output-file)
     (call-with-input-file output-file port->string))))
 
@@ -70,40 +70,38 @@
 (struct passed ())
 
 
-(define (print-results tests results)
- (define bad #f)
- (for ((result results) (test tests))
-  (match result
-   ((compiler-failed exit-code stderr)
-    (printf "---Test ~a---~n" (test-path test))
-    (printf "Compiler failed with exit code: ~a~n" exit-code)
-    (when (not (equal? "" stderr))
-     (printf "Standard Error:~n~a" stderr))
-    (printf "-----~n")
-    (set! bad #t))
+(define (print-result test result)
+ (match result
+  ((compiler-failed exit-code stderr)
+   (printf "---Test ~a---~n" (test-path test))
+   (printf "Compiler failed with exit code: ~a~n" exit-code)
+   (when (not (equal? "" stderr))
+    (printf "Standard Error:~n~a" stderr))
+   (printf "-----~n")
+   #t)
 
-   ((compiler-passed stderr)
-    (printf "---Test ~a---~n" (test-path test))
-    (printf "Compiler passed, should have had error: ~a~n" (test-error test))
-    (when (not (equal? "" stderr))
-     (printf "Standard Error:~n~a" stderr))
-    (printf "-----~n")
-    (set! bad #t))
+  ((compiler-passed stderr)
+   (printf "---Test ~a---~n" (test-path test))
+   (printf "Compiler passed, should have had error: ~a~n" (test-error test))
+   (when (not (equal? "" stderr))
+    (printf "Standard Error:~n~a" stderr))
+   (printf "-----~n")
+   #t)
 
-   ((prog-failed exit stdout stderr)
-    (printf "---Test ~a---~n" (test-path test))
-    (printf "Program failed~n")
-    (unless (equal? exit (test-exit-code test))
-     (printf "Exit code was ~a, should have been ~a~n" exit (test-exit-code test)))
-    (unless (equal? stdout (test-output test))
-     (printf "Output was:~n~a~nShould have been:~n~a~n" stdout (test-output test)))
-    (when (not (equal? "" stderr))
-     (printf "Standard Error:~n~a" stderr))
-    (printf "-----~n")
-    (set! bad #t))
+  ((prog-failed exit stdout stderr)
+   (printf "---Test ~a---~n" (test-path test))
+   (printf "Program failed~n")
+   (unless (equal? exit (test-exit-code test))
+    (printf "Exit code was ~a, should have been ~a~n" exit (test-exit-code test)))
+   (unless (equal? stdout (test-output test))
+    (printf "Output was:~n~a~nShould have been:~n~a~n" stdout (test-output test)))
+   (when (not (equal? "" stderr))
+    (printf "Standard Error:~n~a" stderr))
+   (printf "-----~n")
+   #t)
 
-   ((passed) (void))))
- bad)
+  ((passed) #f)))
+
 
 
 
@@ -126,7 +124,7 @@
 
 
     (define (run-prog)
-     (call-with-input-file (other-file ".input")
+     (call-with-input-file (other-file ".in")
       (lambda (input-file-port)
        (let-values (((sub out _in err) (subprocess #f input-file-port #f compiled-file)))
         (define output #f)
@@ -162,6 +160,14 @@
     (set! compiled-file #f)))))
    
 
+(define ((receive-result-loop finish-chan))
+ (let loop ((bad #f))
+  (let ((test+result (thread-receive)))
+   (if test+result
+       (loop (print-result (car test+result) (cdr test+result)))
+       (channel-put finish-chan bad)))))
+
+
 (define-values (compiler front-end test-dir)
  (let ((compiler "tiger") (test-dir "tests") (front-end #f))
   (command-line 
@@ -181,7 +187,21 @@
 (when (print-bad-tests tests)
  (exit 1))
 
-(define results (map run-test tests))
-(when (print-results tests results)
- (exit 1))
+(define-values (send-result all-passed-evt)
+ (let* ((all-passed-evt (make-channel))
+        (thr (thread (receive-result-loop all-passed-evt))))
+  (values
+   (lambda (v) (thread-send thr v))
+   all-passed-evt)))
+   
+
+(for ((test tests))
+ (let ((result (run-test test)))
+  (send-result (cons test result))))
+
+(send-result #f); All tests are done
+
+(if (sync all-passed-evt)
+    (printf "All tests passed~n")
+    (exit 1))
 
