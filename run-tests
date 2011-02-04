@@ -169,15 +169,15 @@
 
 
 (define-values (compiler front-end test-dir)
- (let ((compiler "tiger") (test-dir "tests") (front-end #f))
+ (let ((comp "tiger") (test-dir "tests") (front-end #f))
   (command-line 
     #:once-each
-    (("-d" "--tests-dir") dir "test directory" (set! test-dir dir))
-    (("-c" "--compiler") comp "compiler path" (set! compiler comp))
-    (("-f" "--front-end") "only run front-end" (set! front-end #t))
+    (("-d" "--tests-dir") directory ("test directory" "Default directory is 'tests'") (set! test-dir directory))
+    (("-c" "--compiler") compiler ("compiler path" "Default path is 'tiger'") (set! comp compiler))
+    (("-f" "--front-end") "only run the front-end" (set! front-end #t))
     #:args ()
      (values
-      (expand-user-path compiler)
+      (expand-user-path comp)
       front-end
       (expand-user-path test-dir)))))
  
