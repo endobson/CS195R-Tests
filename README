@@ -1,0 +1,34 @@
+This is the suite of tests for the course CS195-R.
+
+The important features are the run-tests program and
+the tests directory. 
+
+The test directory contains all of the tests for the course.
+Currently this is very few but hopefully you will change that.
+The folder structure inside this can be arbitrary, but please
+make it sensible.
+
+Tests are a set of files. For the test 'example', the are:
+  test.in
+  test.out
+  test.tiger
+  test.exit (or test.error)
+
+These correspond to the input to the program, the expected
+output, the program itself, and the exit code. If the test
+is checking that a program fails, then replace test.exit 
+with test.error. The meaning of the contents of test.error files 
+is yet to be determined, so just make them human readable for now.
+
+
+run-tests runs the test suite. There are options to set the test directory,
+and the compiler path. Run with the --help option for more information.
+There is another option which will be useful right now '-f', which only
+runs the front-end part of the tests. Thus it will only make sure that
+your compiler does not fail on any good tests, and fails on all erroneous tests.
+
+Currently it passes the input program to your compiler on standard input, and
+does not work for running the generated code.
+
+To add changes, please fork this project on github and publish your changes and
+they will be pulled into the master copy.
