@@ -64,25 +64,29 @@
 
 
 
-(struct compiler-failed (exit-code stderr))
-(struct compiler-passed (stderr)) ;it shouldn't have
+(struct compiler-failed (exit-code stdout stderr))
+(struct compiler-passed (stdout stderr)) ;it shouldn't have
 (struct prog-failed (exit-code stdout stderr))
 (struct passed ())
 
 
 (define (print-result test result)
  (match result
-  ((compiler-failed exit-code stderr)
+  ((compiler-failed exit-code stdout stderr)
    (printf "---Test ~a---~n" (test-path test))
    (printf "Compiler failed with exit code: ~a~n" exit-code)
+   (when (not (equal? "" stdout))
+    (printf "Standard Output:~n~a" stdout))
    (when (not (equal? "" stderr))
     (printf "Standard Error:~n~a" stderr))
    (printf "-----~n")
    #t)
 
-  ((compiler-passed stderr)
+  ((compiler-passed stdout stderr)
    (printf "---Test ~a---~n" (test-path test))
    (printf "Compiler passed, should have had error: ~a~n" (test-error test))
+   (when (not (equal? "" stdout))
+    (printf "Standard Output:~n~a" stdout))
    (when (not (equal? "" stderr))
     (printf "Standard Error:~n~a" stderr))
    (printf "-----~n")
@@ -139,20 +143,21 @@
             (passed)
             (prog-failed exit-code output err-output))))))
     
-    (call-with-input-file tiger-path
-     (lambda (tiger-file-port)
-      (call-with-output-file compiled-file #:exists 'truncate
-       (lambda (compiled-file-port)
-        (let-values (((sub _out _in err) (subprocess compiled-file-port tiger-file-port #f compiler)))
-         (let ((err-string (port->string err)))
-          (close-input-port err)
-          (subprocess-wait sub)
-          (let ((exit-code (subprocess-status sub)))
-           (if (and (= 0 exit-code) (string=? "" err-string))
-               (if (test-error test)
-                   (compiler-passed err-string)
-                   (if front-end (passed) (run-prog)))
-               (compiler-failed exit-code err-string))))))))))
+    (let-values (((sub out in err) (subprocess #f #f #f compiler "-o" (path->string compiled-file) (path->string tiger-path))))
+     (close-output-port in)
+     (define output #f)
+     (define err-output #f)
+     (define out-thread (thread (lambda () (set! output (port->string out)))))
+     (define err-thread (thread (lambda () (set! err-output (port->string err)))))
+     (thread-wait out-thread)
+     (thread-wait err-thread)
+     (subprocess-wait sub)
+     (let ((exit-code (subprocess-status sub)))
+      (if (and (= 0 exit-code) (string=? "" output) (string=? "" err-output))
+          (if (test-error test)
+              (compiler-passed output err-output)
+              (if front-end (passed) (run-prog)))
+          (compiler-failed exit-code output err-output)))))
   (lambda ()
    (when compiled-file
     (when (file-exists? compiled-file)

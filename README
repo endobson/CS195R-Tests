@@ -27,8 +27,10 @@ There is another option which will be useful right now '-f', which only
 runs the front-end part of the tests. Thus it will only make sure that
 your compiler does not fail on any good tests, and fails on all erroneous tests.
 
-Currently it passes the input program to your compiler on standard input, and
-does not work for running the generated code.
+Currently it passes input to your compiler as
+./compiler -o path-to-output path-to-input
+So you should read in the input file and when the time comes
+write your binary to the output file.
 
 To add changes, please fork this project on github and publish your changes and
 they will be pulled into the master copy.
