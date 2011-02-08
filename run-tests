@@ -53,12 +53,12 @@
   (test path expected-error expected-exit expected-output)))
 
 (define (print-bad-tests tests)
- (define bad #f)
+ (define bad-tests #f)
  (for ((test tests))
   (when (bad-test? test)
    (printf "Bad Test: ~a~n" (bad-test-message test))
-   (set! bad #t)))
- bad)
+   (set! bad-tests #t)))
+ bad-tests)
 
 
 
@@ -166,11 +166,11 @@
    
 
 (define ((receive-result-loop finish-chan))
- (let loop ((bad #f))
+ (let loop ((failed-test #f))
   (let ((test+result (thread-receive)))
    (if test+result
-       (loop (print-result (car test+result) (cdr test+result)))
-       (channel-put finish-chan bad)))))
+       (loop (or (print-result (car test+result) (cdr test+result)) failed-test))
+       (channel-put finish-chan failed-test)))))
 
 
 (define-values (compiler front-end test-dir)
@@ -207,6 +207,6 @@
 (send-result #f); All tests are done
 
 (if (sync all-passed-evt)
-    (printf "All tests passed~n")
-    (exit 1))
+    (exit 1)
+    (printf "All tests passed~n"))
 
