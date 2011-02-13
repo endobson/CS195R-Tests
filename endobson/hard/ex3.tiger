@@ -1,0 +1,8 @@
+let 
+ function f (y : int) : int = y*2
+ type intfun = int -> int
+ function g (x : int, h : intfun) : int = h(x)
+in
+ exit(g(2,f))
+end
+

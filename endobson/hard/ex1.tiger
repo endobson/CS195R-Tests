@@ -1,0 +1,10 @@
+let 
+ type a = b
+ type b = string
+ type c = d 
+ type string = int
+ type d = a
+ var d : c := 2
+in
+ exit(d)
+end

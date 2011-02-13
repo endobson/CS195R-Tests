@@ -1,0 +1,7 @@
+let 
+ type list = { hd : int , tl : list }
+in
+ let var list := list{hd = 2, tl = list{hd = 3, tl = nil}} in
+  exit(list.hd)
+ end
+end
