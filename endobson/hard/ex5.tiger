@@ -1,0 +1,6 @@
+let 
+ type intarray = array of int
+ var x := intarray [1] of 5*5 
+in 
+ exit(x[0])
+end
