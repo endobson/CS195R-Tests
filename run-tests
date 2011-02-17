@@ -107,7 +107,94 @@
   ((passed) #f)))
 
 
+(define (server-run-tests tests send-result)
+ (define compiler-subprocess #f)
+ (define compiler-input #f)
+ (define compiler-output #f)
+ (let/ec esc
+ (dynamic-wind
+  (let ((first #t)) (lambda () (if first (set! first #f) (error 'server-run-tests "Re-entered tests"))))
+  (lambda () 
+   (let-values (((sub c-output c-input _err) (subprocess #f #f (current-error-port) compiler)))
+    (for ((test tests))
+     (set! compiler-subprocess sub)
+     (set! compiler-output c-output)
+     (set! compiler-input c-input)
+     (define first #t)
+     (define compiled-file #f)
+     (define output-file #f)
+     (define error-file #f)
+     (define tiger-path (test-path test))
+     (define (other-file ext)
+      (path-replace-suffix tiger-path ext))
+     (dynamic-wind
+      (let ((first #t)) (lambda () (if first (set! first #f) (error 'server-run-tests "Re-entered test for ~a" tiger-path))))
+      (lambda ()
+       (set! compiled-file
+        (make-temporary-file
+         (let-values (((base end dir) (split-path tiger-path)))
+          (if (path? end)
+              (string-append (path->string end) "~a")
+              "tiger~a"))))
+       (set! output-file (make-temporary-file))
+       (set! error-file (make-temporary-file))
+    
+       (write (map path->string (list tiger-path compiled-file output-file error-file)) compiler-input)
+       (flush-output compiler-input)
+       (let* ((message (read-line compiler-output)) (exit-code (and (string? message) (string->number message))))
+        (if (not exit-code)
+         (error 'server-run-tests "Compiler sent back bad message: ~a" message)
+         (let ()
+          (define output (file->string output-file))
+          (define err-output (file->string error-file))
+          (send-result
+           (cons test
+             (if (and (= 0 exit-code) (string=? "" output) (string=? "" err-output))
+                 (if (test-error test)
+                     (compiler-passed output err-output)
+                     (if front-end (passed) (run-prog compiled-file (other-file ".in") (test-output test) (test-exit-code test))))
+                 (compiler-failed exit-code output err-output))))))))
+      (lambda ()
+       (when output-file
+        (when (file-exists? output-file)
+         (delete-file output-file))
+        (set! output-file #f))
+  
+       (when error-file
+        (when (file-exists? error-file)
+         (delete-file error-file))
+        (set! error-file #f))))
+  
+       (when compiled-file
+        (when (file-exists? compiled-file)
+         (delete-file compiled-file))
+        (set! compiled-file #f)))))
+  (lambda ()
+   (close-output-port compiler-input)
+   (close-input-port compiler-output)
+   (subprocess-wait compiler-subprocess)
+   (let ((exit-code (subprocess-status compiler-subprocess)))
+    (unless (zero? exit-code)
+     (error 'run-server-tests "Compiler exited with exit code: ~a" exit-code)))))))
 
+  
+
+
+(define (run-prog compiled-file input-file test-output test-exit-code)
+ (call-with-input-file input-file 
+  (lambda (input-file-port)
+   (let-values (((sub out _in err) (subprocess #f input-file-port #f compiled-file)))
+    (define output #f)
+    (define err-output #f)
+    (define out-thread (thread (lambda () (set! output (port->string out)))))
+    (define err-thread (thread (lambda () (set! err-output (port->string err)))))
+    (thread-wait out-thread)
+    (thread-wait err-thread)
+    (subprocess-wait sub)
+    (define exit-code (subprocess-status sub))
+    (if (and (= exit-code test-exit-code) (string=? output test-output))
+        (passed)
+        (prog-failed exit-code output err-output))))))
 
 
 (define (run-test test)
@@ -127,21 +214,6 @@
 
 
 
-    (define (run-prog)
-     (call-with-input-file (other-file ".in")
-      (lambda (input-file-port)
-       (let-values (((sub out _in err) (subprocess #f input-file-port #f compiled-file)))
-        (define output #f)
-        (define err-output #f)
-        (define out-thread (thread (lambda () (set! output (port->string out)))))
-        (define err-thread (thread (lambda () (set! err-output (port->string err)))))
-        (thread-wait out-thread)
-        (thread-wait err-thread)
-        (subprocess-wait sub)
-        (define exit-code (subprocess-status sub))
-        (if (and (= exit-code (test-exit-code test)) (string=? output (test-output test)))
-            (passed)
-            (prog-failed exit-code output err-output))))))
     
     (let-values (((sub out in err) (subprocess #f #f #f compiler "-o" (path->string compiled-file) (path->string tiger-path))))
      (close-output-port in)
@@ -156,7 +228,9 @@
       (if (and (= 0 exit-code) (string=? "" output) (string=? "" err-output))
           (if (test-error test)
               (compiler-passed output err-output)
-              (if front-end (passed) (run-prog)))
+              (if front-end
+                  (passed)
+                  (run-prog compiled-file (other-file ".in") (test-output test) (test-exit-code test))))
           (compiler-failed exit-code output err-output)))))
   (lambda ()
    (when compiled-file
@@ -173,24 +247,28 @@
        (channel-put finish-chan failed-test)))))
 
 
-(define-values (compiler front-end test-dir)
- (let ((comp "tiger") (test-dir "tests") (front-end #f))
+(define-values (compiler front-end test-dir server)
+ (let ((comp 'default) (test-dir "tests") (front-end #f) (server #f))
   (command-line 
     #:once-each
     (("-d" "--tests-dir") directory ("test directory" "Default directory is 'tests'") (set! test-dir directory))
-    (("-c" "--compiler") compiler ("compiler path" "Default path is 'tiger'") (set! comp compiler))
+    (("-c" "--compiler") compiler ("compiler path"
+                                   "Default path is 'tiger', unless the server option is set, then it is 'tiger-server'") (set! comp compiler))
     (("-f" "--front-end") "only run the front-end" (set! front-end #t))
+    (("-s" "--server") ("run the compiler as a server"
+                        "Sends input on lines in standard in, instead of in the arguments") (set! server #t))
     #:args ()
      (values
-      (expand-user-path comp)
+      (expand-user-path (if (equal? 'default comp) (if server "tiger-server" "tiger") comp))
       front-end
-      (expand-user-path test-dir)))))
+      (expand-user-path test-dir)
+      server))))
  
 
 
 (define tests (map read-test (find-tests test-dir)))
 (when (print-bad-tests tests)
- (exit 1))
+  (exit 1))
 
 (define-values (send-result all-passed-evt)
  (let* ((all-passed-evt (make-channel))
@@ -199,10 +277,11 @@
    (lambda (v) (thread-send thr v))
    all-passed-evt)))
    
-
-(for ((test tests))
- (let ((result (run-test test)))
-  (send-result (cons test result))))
+(if server
+    (server-run-tests tests send-result)
+    (for ((test tests))
+     (let ((result (run-test test)))
+      (send-result (cons test result)))))
 
 (send-result #f); All tests are done
 
