@@ -1,0 +1,5 @@
+let 
+ var x := 0
+in
+ exit ((x := 3 + 2) * x)
+end
