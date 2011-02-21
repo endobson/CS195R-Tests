@@ -1,0 +1,7 @@
+(print("abc\n");
+print("def\n");
+print("\tghi\n");
+print("\074\075\076\n");
+print("\"\\\\\"\n");
+print("mnop\    \qrst\
+	    \uvwxyz\n"))
