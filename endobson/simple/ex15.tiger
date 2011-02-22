@@ -1,0 +1,2 @@
+for i := 67 to 69 do
+    print(chr(i))

@@ -1,0 +1,68 @@
+let
+ type intarray = array of int
+ function sort(arr : intarray, size : int) =
+  let 
+   function swap(a : int, b : int) =
+    let
+     var tmp := arr[a]
+    in 
+     arr[a] := arr[b];
+     arr[b] := tmp
+    end
+   function sortrange(low : int, high : int) =
+    if high > low then
+       let
+        var pivotIndex := low+(high-low)/2
+        function partition() : int = 
+         let
+          var pivotValue := arr[pivotIndex]
+         in
+          swap(pivotIndex,high);
+          let
+           function loop(low : int, high : int) : int =
+            if low > high then
+             (swap(pivotIndex,low);low)
+            else
+             if arr[low] <= pivotValue then
+                 loop(low+1,high)
+             else
+                 (swap(low,high);loop(low,high-1))
+          in
+           loop(low,high-1)
+          end
+         end
+        var newPivotIndex := partition()
+       in
+        sortrange(low,newPivotIndex-1);
+        sortrange(newPivotIndex+1,high)
+       end
+  in
+   sortrange(0,size-1)
+  end
+ function printarray(arr : intarray, size : int) = 
+  (print("[");
+   for i := 0 to size-1 do
+       (print(chr(arr[i]));
+        if i <> size-1 then print(","));
+   print("]"))
+in
+ let
+  var size := 5
+  var arr := intarray[size] of 65
+  function write() = (printarray(arr,size);print("\n"))
+ in
+  write();
+  arr[0] = 67;
+  arr[1] = 69;
+  arr[2] = 68;
+  arr[3] = 64;
+  arr[4] = 66;
+  write();
+  sort(arr,size);
+  write()
+ end
+end
+
+
+
+
