@@ -19,9 +19,10 @@ let
          in
           swap(pivotIndex,high);
           let
+           var origHigh := high
            function loop(low : int, high : int) : int =
             if low > high then
-             (swap(pivotIndex,low);low)
+             (swap(origHigh,low);low)
             else
              if arr[low] <= pivotValue then
                  loop(low+1,high)
@@ -52,14 +53,16 @@ in
   function write() = (printarray(arr,size);print("\n"))
  in
   write();
-  arr[0] = 67;
-  arr[1] = 69;
-  arr[2] = 68;
-  arr[3] = 64;
-  arr[4] = 66;
-  write();
+  arr[0] := 67;
+  arr[1] := 69;
+  arr[2] := 68;
+  arr[3] := 64;
+  arr[4] := 66;
+  write(); 
   sort(arr,size);
   write()
+
+
  end
 end
 
