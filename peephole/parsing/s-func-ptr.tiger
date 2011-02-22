@@ -1,0 +1,3 @@
+let type a = int -> () -> int -> int
+in 5
+end

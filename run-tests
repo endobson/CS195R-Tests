@@ -46,7 +46,7 @@
    (return (bad-test (format "Both an error file and exit file exist: ~a, ~a" (other-file ".error") (other-file ".exit")))))
  
   (when (and expected-error expected-output)
-   (return (bad-test (format "Both an error file and output file exist: ~a, ~a" (other-file ".error") (other-file ".output")))))
+   (return (bad-test (format "Both an error file and output file exist: ~a, ~a" (other-file ".error") (other-file ".out")))))
  
   (when (and (not expected-error) (not expected-exit))
    (return (bad-test (format "Neither an error file nor an exit file exist: ~a, ~a" (other-file ".error") (other-file ".exit")))))
@@ -153,7 +153,9 @@
                  (if (test-error test)
                      (compiler-passed output err-output)
                      (if front-end (passed) (run-prog compiled-file (other-file ".in") (test-output test) (test-exit-code test))))
-                 (compiler-failed exit-code output err-output))))))))
+                 (if (and (not (= 0 exit-code)) (test-error test))
+                     (passed)
+                     (compiler-failed exit-code output err-output)))))))))
       (lambda ()
        (when output-file
         (when (file-exists? output-file)
@@ -231,7 +233,9 @@
               (if front-end
                   (passed)
                   (run-prog compiled-file (other-file ".in") (test-output test) (test-exit-code test))))
-          (compiler-failed exit-code output err-output)))))
+          (if (and (not (= 0 exit-code)) (test-error test))
+              (passed)
+              (compiler-failed exit-code output err-output))))))
   (lambda ()
    (when compiled-file
     (when (file-exists? compiled-file)

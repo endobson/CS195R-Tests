@@ -1,0 +1,6 @@
+let var f := 5
+in
+  while f <> 0
+  do
+    f := f - 1
+end

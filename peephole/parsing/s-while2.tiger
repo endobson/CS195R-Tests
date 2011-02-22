@@ -1,0 +1,10 @@
+let var f := 5
+in
+  while f <> 0
+  do
+    if f = 2
+    then
+      break
+    else
+      f := f - 1
+end

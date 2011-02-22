@@ -1,0 +1,10 @@
+let 
+    type intfun = int -> int
+    function ff (a : int) : intfun =
+    let function f (b : int) : int = a * b
+    in
+         f
+    end
+in
+   ff(1)(2)
+end

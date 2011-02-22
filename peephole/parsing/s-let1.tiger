@@ -1,0 +1,3 @@
+let function f (a : int, b : int) : int = a * b
+in f(1,2)
+end
