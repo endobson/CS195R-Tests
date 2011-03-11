@@ -1,0 +1,19 @@
+let
+ type intfun = int -> int
+ function fib (x : int) : int = 
+  if (x = 0 | x = 1) then
+      1
+  else
+      fib(x-1) + fib(x-2)
+ function fact (x : int) : int = 
+  if (x = 1) then
+      1
+  else
+      fact(x-1) * x
+ var f : intfun := if 1 then fib else fact
+in
+ f(2);
+ f(3)
+end
+
+     

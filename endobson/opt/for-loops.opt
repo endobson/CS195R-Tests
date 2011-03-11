@@ -1,0 +1,11 @@
+let
+ function even(x : int) : int = x = ((x/2)*2)
+in
+
+for i := 65 to 73 + 4 do
+    if even(i) then 
+        for j := i-1 to i do    
+            print(chr(j))
+    else
+        print("\n")
+end

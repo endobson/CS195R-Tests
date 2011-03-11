@@ -1,0 +1,6 @@
+let
+ function f(x : int) : int = if x then x else 3
+ /* function g() = g() */
+in
+ f(3) +  2
+end

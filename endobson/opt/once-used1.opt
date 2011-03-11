@@ -1,0 +1,6 @@
+/*Test inline of once used functions*/
+let 
+ function f(x : int) : int = x * 2
+in
+ exit(f(4))
+end
