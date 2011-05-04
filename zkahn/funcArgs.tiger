@@ -1,0 +1,2 @@
+let function f(a:int, b:int, c:int, d:int, e:int):int = a+b+c+d+e
+	in print(itoa(f(f(1,2,3,4,5),f(6,7,8,9,10),f(11,12,13,14,15),f(16,17,18,19,20),f(21,22,23,24,25)))) end
