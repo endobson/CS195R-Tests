@@ -1,0 +1,8 @@
+let type a = () -> int 
+	function f():a = 
+		let var x := 0 
+			function g():int = 
+				(x:=x + 1; x) 
+		in g end
+	var g := f()	
+	in for x:=1 to 10 do print(itoa(g())) end
