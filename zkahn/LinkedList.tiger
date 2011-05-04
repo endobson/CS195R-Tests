@@ -1,0 +1,28 @@
+let type node = {value:string, next:node} 
+	function printList(node:node) = 
+		while node <> nil do
+			(print(node.value);
+			print("\n");
+			node := node.next)
+	function addValue(head:node, val:string) = 
+		(while head.next <> nil do
+			head := head.next;
+		head.next := node{value = val, next = nil})
+	function contains(node:node, val:string):int = 
+		let var found := node.value = val in
+			while found = 0 do ( 
+				node := node.next; 
+				found := node.value = val;
+				if node.next = nil then break);
+			found <> 0 end
+	var x:= node{value = "1", next = nil} 
+	in 
+		addValue(x, "2");
+		addValue(x, "3");
+		addValue(x, "4");
+		addValue(x, "5");
+		printList(x);
+		print(itoa(contains(x, "5")));
+		print("\n");
+		print(itoa(contains(x, "6")))
+	end

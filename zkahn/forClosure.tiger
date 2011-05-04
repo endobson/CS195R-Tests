@@ -1,0 +1,8 @@
+let function f():int = 1
+	in for x := 1 to 10 do
+		if x = 4 then
+			let function g():int = x in
+			f := g
+			end;
+	print(itoa(f()))
+end
