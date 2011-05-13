@@ -1,0 +1,70 @@
+let
+ var s1 := "foo"
+ var s2 := "bar"
+ var s3 := "foobar"
+ function newline() = print("\n")
+in
+ print(itoa(s1 = s1)); newline();
+ print(itoa(s1 = s2)); newline();
+ print(itoa(s1 = s3)); newline();
+ print(itoa(s2 = s1)); newline();
+ print(itoa(s2 = s2)); newline();
+ print(itoa(s2 = s3)); newline();
+ print(itoa(s3 = s1)); newline();
+ print(itoa(s3 = s2)); newline();
+ print(itoa(s3 = s3)); newline();
+
+newline();
+
+ print(itoa(s1 <= s1)); newline();
+ print(itoa(s1 <= s2)); newline();
+ print(itoa(s1 <= s3)); newline();
+ print(itoa(s2 <= s1)); newline();
+ print(itoa(s2 <= s2)); newline();
+ print(itoa(s2 <= s3)); newline();
+ print(itoa(s3 <= s1)); newline();
+ print(itoa(s3 <= s2)); newline();
+ print(itoa(s3 <= s3)); newline();
+
+newline();
+
+
+ print(itoa(s1 >= s1)); newline();
+ print(itoa(s1 >= s2)); newline();
+ print(itoa(s1 >= s3)); newline();
+ print(itoa(s2 >= s1)); newline();
+ print(itoa(s2 >= s2)); newline();
+ print(itoa(s2 >= s3)); newline();
+ print(itoa(s3 >= s1)); newline();
+ print(itoa(s3 >= s2)); newline();
+ print(itoa(s3 >= s3)); newline();
+
+newline();
+
+
+ print(itoa(s1 > s1)); newline();
+ print(itoa(s1 > s2)); newline();
+ print(itoa(s1 > s3)); newline();
+ print(itoa(s2 > s1)); newline();
+ print(itoa(s2 > s2)); newline();
+ print(itoa(s2 > s3)); newline();
+ print(itoa(s3 > s1)); newline();
+ print(itoa(s3 > s2)); newline();
+ print(itoa(s3 > s3)); newline();
+
+
+newline();
+
+
+
+
+ print(itoa(s1 < s1)); newline();
+ print(itoa(s1 < s2)); newline();
+ print(itoa(s1 < s3)); newline();
+ print(itoa(s2 < s1)); newline();
+ print(itoa(s2 < s2)); newline();
+ print(itoa(s2 < s3)); newline();
+ print(itoa(s3 < s1)); newline();
+ print(itoa(s3 < s2)); newline();
+ print(itoa(s3 < s3)); newline()
+end
