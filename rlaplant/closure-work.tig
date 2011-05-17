@@ -1,0 +1,13 @@
+let
+   type t = () -> int
+   var x : int := 94
+   function g(): int = x
+   function f(proc:t):int = proc()
+   /*STUPID COMMENT*/
+/*
+lol at least we have multiline comments
+ha
+*/
+in
+   exit(f(g))
+end

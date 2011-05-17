@@ -1,0 +1,11 @@
+let 
+  var x := 0
+in
+  for i := 1 to 10
+  do
+    (x := i;
+     if (i = 5) then
+        (break;()))
+  ;
+  exit(x)
+end

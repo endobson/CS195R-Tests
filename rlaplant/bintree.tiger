@@ -1,0 +1,21 @@
+let 
+ type bintree = {left : bintree, val : int, right : bintree} 
+ function leaf (v : int) : bintree = bintree{left = nil, val = v, right = nil}
+ function make (item : int, depth : int) : bintree =
+  if depth = 0
+  then
+      leaf (item)
+  else
+      let 
+       var item2 := item*2
+       var depth := depth-1
+      in
+      bintree{left = make(item2-1,depth), val = item, right = make(item2,depth)}
+      end
+ function check (tree : bintree) : int = 
+  if tree = nil then 0 else
+    tree.val + (check(tree.left) - check(tree.right))
+in
+ exit(check(make(5,5)))
+end
+

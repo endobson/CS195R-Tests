@@ -1,0 +1,7 @@
+let
+   function f():int = 5
+   function g():int = 6
+in
+   f := g;
+   exit(g())
+end

@@ -1,0 +1,11 @@
+let
+   function f():int = 1006
+in
+   let
+      var x : int := 28
+      function g():int = x
+   in
+      f := g
+   end;
+   exit(f())
+end

@@ -1,0 +1,11 @@
+let
+   function f():int = 54
+in
+   let
+      function g():int = 33
+   in
+      f := g;
+   end;
+   
+   exit(f())
+end

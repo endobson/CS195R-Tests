@@ -1,0 +1,24 @@
+let
+   type a = () -> int
+   function f() : a =
+      let
+         var x : int := 25
+         function g():int = x
+      in
+         g
+      end
+in
+   let
+      var garbage : int := 234
+      var worthless : int := 53
+      var stupid : int := 991
+      var fjsdklafj : int := 94394
+      var djfkljgrui : int := 49534
+      var jgioerha : int := 459325
+      var gioejioagjir : int := 493243
+      var gjruioegeuagh : int := 589405
+      var fdjsofijf : int := 4309235
+   in
+      exit(f()())
+   end
+end

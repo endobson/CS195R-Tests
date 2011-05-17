@@ -1,0 +1,6 @@
+let
+  type boxint={x:int}
+  var b : boxint := nil
+in
+  exit(b.x)
+end
