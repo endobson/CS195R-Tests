@@ -1,0 +1,13 @@
+for i := 1 to 10 do
+   let
+      function f() =
+         let
+            var i : int := 115
+         in
+            if i=3
+            then i := 5
+            else print(atoi(i))
+         end
+   in
+      f()
+   end
